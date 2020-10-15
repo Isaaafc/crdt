@@ -3,10 +3,6 @@ from datetime import datetime
 from . import ans, upd, slice_dict
 import pytest
 
-@pytest.mark.skip
-def test_output_data():
-    pass
-
 def test_add_one():
     crdt = CRDT()
     crdt.add('a', 1)
@@ -51,6 +47,7 @@ def test_remove_many(ans):
     for k in ans:
         crdt.remove(k)
     
+    # The same set of keys is added and removed, the length of the log should be twice that of the ans set
     assert len(crdt.log) == len(ans) * 2
     assert len(crdt.data) == 0
 
@@ -63,6 +60,7 @@ def test_update_many(ans, upd):
     for k, v in upd.items():
         crdt.update(k, v)
 
+    # The keys are added then updated, the length of the log should be the sum of the lengths of the ans and upd set
     assert len(crdt.log) == len(ans) + len(upd)
     assert crdt.data == {upd[k]:v for k, v in ans.items()}
 
@@ -75,6 +73,8 @@ def test_add_same_key_twice():
         crdt.add(key, v)
 
     assert len(crdt.log) == len(values)
+
+    # Only the updated value should be present
     assert crdt.data == {key: values[-1]}
 
 def test_merge_add_only(ans):
@@ -105,6 +105,8 @@ def test_merge_add_same_key_diff_values(ans):
     merged = merge(crdt_1, crdt_2)
 
     assert len(merged.log) == len(crdt_1.log) + len(crdt_2.log)
+
+    # Only the values updated later should be present
     assert merged.data == ans_alt
 
 def test_merge_add_remove(ans):

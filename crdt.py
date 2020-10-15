@@ -9,9 +9,13 @@ ADD = 0
 REMOVE = 1
 UPDATE = 3
 
+INVALID_OP = 'Invalid operation'
+INVALID_TS = 'Invalid timestamp'
+
 class CRDT():
     """
-    CRDT dict variant. This class keeps a log of all operations performed in sequence.
+    CRDT dict variant. This class keeps a log of all operations performed in sequence. 
+    The add(), remove(), and update() functions assign the current timestamp to the operation and append it to the log. The log is valid as long as it is only updated by the functions provided in this class.
     """
     def __init__(self):
         self.log = []
@@ -39,7 +43,13 @@ class CRDT():
         self.append(operation)
 
     def append(self, operation):
+        """
+        Append an operation to the log and update the underlying data
+        """
         assert operation.op in [ADD, REMOVE, UPDATE], 'Invalid operation'
+
+        # If the log is only updated by the valid functions, only the last operation's timestamp need to be checked
+        assert len(self.log) == 0 or self.log[-1].ts <= operation.ts, 'Invalid timestamp'
 
         if operation.op == ADD:
             self.data[operation.key] = operation.value
@@ -56,7 +66,9 @@ def merge(crdt, other):
     """
     Merge two CRDTs. Returns a new CRDT with the merged sequence of logs. The data in this class will not be affected
     When the timestamps of two operations are the same, the operation of this class will be taken first
-    An important input assumption is both crdt and other must contain valid logs produced by only CRDT.add(), CRDT.remove(), CRDT.update(), and merge() functions
+    
+    An important input assumption is both crdt and other must contain valid logs produced by only CRDT.add(), CRDT.remove(), CRDT.update(), CRDT.append() and merge() functions
+    When the inputs are valid, the operation is similar to merging two sorted lists
 
     Parameters
     ----------
