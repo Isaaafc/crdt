@@ -56,11 +56,18 @@ class CRDT():
             if operation.op == ADD:
                 res[operation.key] = operation.value
             elif operation.op == REMOVE:
-                res.pop(operation.key, None)
+                rm_key = res.pop(operation.key, None)
+                
+                if not rm_key:
+                    rm_key = updated.pop(operation.key)
+
             elif operation.op == UPDATE:
                 # If the key does not exist, an exception is thrown
-                old = res.pop(operation.key)
-                res[operation.value] = old
+                res[operation.value] = res.pop(operation.key)
+                
+                if not old:
+                    # If the key does not exist in both the current set and the removed set, an exception is thrown
+                    old = removed.pop(operation.key)
 
         return res
 
@@ -71,6 +78,9 @@ def merge(crdt, other):
     """
     i, j = 0, 0
     res = CRDT()
+
+    removed = OrderedDict()
+    updated = OrderedDict()
 
     while i < len(crdt.log) and j < len(other.log):
         if crdt.log[i].ts <= other.log[j].ts:

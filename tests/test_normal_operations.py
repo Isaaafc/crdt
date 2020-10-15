@@ -112,8 +112,6 @@ def test_merge_add_remove(ans):
     # Both CRDTs contain the same data initially
     for k, v in ans.items():
         crdt_1.add(k, v)
-
-    for k, v in ans.items():
         crdt_2.add(k, v)
 
     # Remove second half of the ans set in crdt_2
@@ -122,17 +120,17 @@ def test_merge_add_remove(ans):
     
     merged = merge(crdt_1, crdt_2)
 
-    # Only first half of the ans set remains
+    # Only first half of the ans set should remain
     assert merged.data() == ans_1
 
 def test_merge_add_update(ans, upd):
     crdt_1, crdt_2 = CRDT(), CRDT()
     ans_1, ans_2 = slice_dict(ans, 0, len(ans) // 2), slice_dict(ans, len(ans) // 2, len(ans))
 
-    for k, v in crdt_1:
+    for k, v in ans_1.items():
         crdt_1.add(k, v)
     
-    for k, v in crdt_2:
+    for k, v in ans_2.items():
         crdt_2.add(k, v)
 
     for k in ans_2:
@@ -140,11 +138,46 @@ def test_merge_add_update(ans, upd):
     
     merged = merge(crdt_1, crdt_2)
 
-    # Only keys in the second half of the ans set is updated
-    pass
+    # Only keys in the second half of the ans set should be updated
+    ans_1.update({upd[k]:v for k, v in ans_2.items()})
+    assert merged.data() == ans_1
 
-def test_merge_add_remove_update():
-    pass
+def test_merge_add_remove_update(ans, upd):
+    crdt_1, crdt_2 = CRDT(), CRDT()
+    ans_1, ans_2 = slice_dict(ans, 0, len(ans) // 2), slice_dict(ans, len(ans) // 2, len(ans))
 
-def test_merge_add_update_remove():
-    pass
+    for k, v in ans.items():
+        crdt_1.add(k, v)
+        crdt_2.add(k, v)
+
+    # Remove the elements in the second half of the ans set in crdt_1
+    for k in ans_2:
+        crdt_1.remove(k)
+
+    # Update same keys that are removed in crdt_1 in crdt_2
+    for k in ans_2:
+        crdt_2.update(k, upd[k])
+
+    merged = merge(crdt_1, crdt_2)
+
+    # Since this is a LWW set, the updates will overwrite the removes since they're executed later
+    ans_1.update({upd[k]:v for k, v in ans_2.items()})
+    assert merged.data() == ans_1
+
+def test_merge_add_update_remove(ans, upd):
+    crdt_1, crdt_2 = CRDT(), CRDT()
+    ans_1, ans_2 = slice_dict(ans, 0, len(ans) // 2), slice_dict(ans, len(ans) // 2, len(ans))
+
+    for k, v in ans.items():
+        crdt_1.add(k, v)
+        crdt_2.add(k, v)
+
+    # Update the elements in the second half of the ans set in crdt_1 (oppsite of test_merge_add_remove_update())
+    for k in ans_2:
+        crdt_1.update(k, upd[k])
+
+    # Remove old keys that are updated in crdt_1 in crdt_2
+    for k in ans_2:
+        crdt_2.remove(k)
+
+    
